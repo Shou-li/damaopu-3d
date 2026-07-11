@@ -1299,7 +1299,7 @@ function addGroundMarker(lon,lat){ var x=lonToX(lon),z=latToZ(lat); if(!inside(x
   groundMarkers.push({obj:g,x:x,z:z,ground:sampleElev(x,z)});
 }
 VECT.places.forEach(function(p){
-  if(p.n==='大茅埔'){ addGroundMarker(p.lon,p.lat); addLabel(p.n,p.lon,p.lat,52,'#b00000',1.30,0.9,0); }
+  if(p.n==='大茅埔'){ addLabel(p.n,p.lon,p.lat,52,'#b00000',1.30,0.9,0); }
   else if(p.c==='big') addLabel(p.n,p.lon,p.lat,50,'#33240f',1.26,0.85,1);
   else if(p.c==='mid') addLabel(p.n,p.lon,p.lat,44,'#26200f',1.05,0.7,1);
   else addLabel(p.n,p.lon,p.lat,34,'#20242c',0.72,0.5,2);
@@ -1364,7 +1364,7 @@ var DOTTEX=dotTex();
 });
 /* 泰興宮主標記 */
 (MY.srv.pts.concat(MY.can.pts,MY.old.pts)).some(function(p){
-  if(p.n==='泰興宮'){ addGroundMarker(p.lon,p.lat); addLabel('泰興宮',p.lon,p.lat,46,'#b00000',1.1,0.72,0); return true; }
+  if(p.n==='泰興宮'){ addLabel('泰興宮',p.lon,p.lat,46,'#b00000',1.1,0.72,0); return true; }
   return false;
 });
 /* exaggeration */
