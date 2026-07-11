@@ -55,7 +55,7 @@ canvas{display:block;touch-action:none}
 </style></head><body>
 <div id="loading">載入地形・衛星影像・社區資料中…</div>
 <div id="title" class="panel"><h1>大茅埔 3D 互動地圖 — 老地名・水圳・社區記憶</h1>
-<div class="sub">台中市東勢區 慶東里・慶福里（大茅埔庄）與大甲溪沿岸<br>範圍 120.815–120.886°E, 24.157–24.268°N（約 7.2 × 12.3 km）｜約5m網格<br>資料：大茅埔老地名（2020）＋五行村徽社區雲端地圖（2022）｜<b>點圓點看照片與故事</b></div></div>
+<div class="sub">台中市東勢區 慶東里・慶福里（大茅埔庄）與大甲溪沿岸<br>範圍 120.815–120.886°E, 24.157–24.268°N（約 7.2 × 12.3 km）｜約5m網格<br>資料：大茅埔老地名（2020）＋五行村徽社區雲端地圖（2022）｜<b>滑過圓點顯示名稱，點擊看照片與故事</b></div></div>
 <div id="hover"></div>
 <div id="northbox"><span id="north">N↑</span></div>
 <div id="pop"><button class="x" id="pop_x">×</button><h2 id="pop_t"></h2><span class="lay" id="pop_l"></span><div class="txt" id="pop_d"></div><div id="pop_ph"></div></div>
@@ -1324,7 +1324,7 @@ var DOTTEX=dotTex();
     P.push(x,0,z); C.push(gc.r,gc.g,gc.b);
     var it={x:x,z:z,ground:sampleElev(x,z),data:p,g:g,y:0};
     items.push(it); myItems.push(it);
-    if(p.n){ myLabels.push({sp:null,name:p.n,data:p,x:x,z:z,ground:it.ground,off:0.5,g:g}); }
+    if(p.n){ var le={sp:null,name:p.n,data:p,x:x,z:z,ground:it.ground,off:0.5,g:g}; myLabels.push(le); it.lab=le; }
   });
   if(P.length){
     var pg=new THREE.BufferGeometry();
@@ -1455,12 +1455,20 @@ function clickAt(cx,cy,isTouch){
   pop.style.display='none';
   if(isTouch) showReadout(cx,cy,true);
 }
-var lastMove=0;
+var lastMove=0,hovLab=null;
+function setHoverLabel(m){
+  if(hovLab&&hovLab!==m){ if(hovLab.sp) hovLab.sp.visible=false; hovLab=null; }
+  if(m){ if(!m.sp){ m.sp=makeSprite(m.name,42,MYSTYLE[m.g].lab,0.95); myGrp[m.g].add(m.sp); }
+    m.sp.position.set(m.x,m.ground*0.001*EX+m.off,m.z);
+    m.sp.visible=true; hovLab=m; }
+}
 renderer.domElement.addEventListener('mousemove',function(ev){
   if(isMobile) return;
   var now=performance.now(); if(now-lastMove<70) return; lastMove=now;
   showReadout(ev.clientX,ev.clientY,false);
-  renderer.domElement.style.cursor=pickMyPoint(ev.clientX,ev.clientY)?'pointer':'';
+  var hp=pickMyPoint(ev.clientX,ev.clientY);
+  renderer.domElement.style.cursor=hp?'pointer':'';
+  if(hp&&hp.lab) setHoverLabel(hp.lab); else if(!hp) setHoverLabel(null);
 });
 /* 點擊/輕點：統一 pointer events（OrbitControls 對 pointerdown preventDefault，
    瀏覽器不會再派發相容性 mouse 事件，掛 mouseup 永遠收不到——這是 v1–v3 桌機點不開的根因） */
@@ -1495,12 +1503,7 @@ addEventListener('resize',function(){ camera.aspect=innerWidth/innerHeight; came
 var loadEl=document.getElementById('loading');
 function updateLOD(){ var d=camera.position.distanceTo(controls.target);
   for(var li=0;li<labelItems.length;li++){ var t=labelItems[li].tier; labelItems[li].sp.visible=(t===0)||(t===1&&d<60)||(t===2&&d<9); }
-  var thr={old:8,can:8,srv:6},made=0;
-  for(var mi=0;mi<myLabels.length;mi++){ var m=myLabels[mi];
-    var want=myGrp[m.g].visible&&d<thr[m.g];
-    if(want&&!m.sp&&made<16){ m.sp=makeSprite(m.name,42,MYSTYLE[m.g].lab,0.95);
-      m.sp.position.set(m.x,m.ground*0.001*EX+m.off,m.z); myGrp[m.g].add(m.sp); made++; }
-    if(m.sp) m.sp.visible=want; }
+  /* 文史點名稱：僅滑鼠移過才顯示（setHoverLabel），不做距離自動浮現 */
 }
 (function animate(){ requestAnimationFrame(animate); controls.update(); updateLOD();
   northEl.style.transform='rotate('+(controls.getAzimuthalAngle()*180/Math.PI).toFixed(1)+'deg)';
