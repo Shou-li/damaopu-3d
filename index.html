@@ -61,10 +61,18 @@ canvas{display:block;touch-action:none}
 <div id="pop"><button class="x" id="pop_x">×</button><h2 id="pop_t"></h2><span class="lay" id="pop_l"></span><div class="txt" id="pop_d"></div><div id="pop_ph"></div></div>
 <div id="ctrl" class="panel">
   <button class="tog" id="tog_ctrl">設定 ▾</button>
-  <div class="seg"><button id="mode_cont" class="on">等高線</button><button id="mode_sat">衛星</button></div>
+  <div class="seg"><button id="mode_cont" class="on">等高線</button><button id="mode_sat">衛星</button><button id="mode_hist">歷史</button></div>
   <label>垂直誇張 <span id="exval">2.0×</span><input type="range" id="ex" min="0.5" max="4" step="0.1" value="2.0"></label>
   <div class="grp">社區調查圖層</div>
   <div class="togs" style="font-size:12px"><label><input type="checkbox" id="ck_old" checked> 老地名</label><label><input type="checkbox" id="ck_can" checked> 水圳</label><label><input type="checkbox" id="ck_srv" checked> 調查點</label></div>
+  <div id="thm_row"><div class="grp">主題疊圖（點選顯示）</div>
+  <div class="togs" style="font-size:12px"><label><input type="checkbox" id="ck_agri"> 農業</label><label><input type="checkbox" id="ck_bld"> 建築</label><label><input type="checkbox" id="ck_ccan"> 圳路</label></div>
+  <div class="grp">地形</div>
+  <div class="togs" style="font-size:12px"><label><input type="checkbox" id="ck_contour" checked> 等高線</label><label>間距 <select id="ct_int"><option value="20">20</option><option value="50" selected>50</option><option value="100">100</option></select> m</label></div>
+  <div class="grp">土地使用現況（NLSC）</div>
+  <div class="togs" style="font-size:12px"><label><input type="checkbox" id="ck_land"> 顯示土地使用</label></div></div>
+  <div id="hist_row" style="display:none"><div class="grp">歷史地圖（中研院百年歷史地圖）</div>
+  <div class="togs" style="font-size:12px"><label><input type="radio" name="histmap" value="1904" checked> 1904 堡圖</label><br><label><input type="radio" name="histmap" value="1921"> 1921 陸測</label><br><label><input type="radio" name="histmap" value="1989"> 1989 經建</label></div></div>
   <div class="grp">底圖圖層</div>
   <div class="togs" style="font-size:12px"><label><input type="checkbox" id="ck_lab" checked> 地名</label><label><input type="checkbox" id="ck_road" checked> 道路</label><label><input type="checkbox" id="ck_wat" checked> 水文</label></div>
   <button id="reset" class="full">重設視角</button>
@@ -80,8 +88,17 @@ canvas{display:block;touch-action:none}
   <div class="row"><span class="ln" style="border-top-color:#35c0d8;border-top-width:3px"></span>水圳路線</div>
   <div class="row" style="margin-top:4px"><span class="ln" style="border-top-color:#3f9fe0"></span>河川　<span class="ln" style="border-top-color:#6fb2dd"></span>溪流</div>
   <div class="row"><span class="ln" style="border-top-color:#f08a3c"></span>主要道路　<span class="ln" style="border-top-color:#b9a071"></span>一般道路</div>
+  <div class="row"><span class="ln" style="border-top-color:#5a3510;border-top-width:2px"></span>等高線（粗線＝每百公尺）</div>
+<div id="lu_legend" style="display:none;margin-top:6px;border-top:1px solid rgba(255,255,255,.15);padding-top:5px">
+  <div class="cap">土地使用現況（NLSC 2025）</div>
+  <div class="row"><span class="dot" style="background:#63c03b"></span>農業　<span class="dot" style="background:#38a800"></span>森林</div>
+  <div class="row"><span class="dot" style="background:#ff7878"></span>交通　<span class="dot" style="background:#a4d7f5"></span>水利</div>
+  <div class="row"><span class="dot" style="background:#fff429"></span>建築　<span class="dot" style="background:#ff9f29"></span>公共設施</div>
+  <div class="row"><span class="dot" style="background:#e9e984"></span>遊憩　<span class="dot" style="background:#956f23"></span>礦鹽</div>
+  <div class="row"><span class="dot" style="background:#b0d326"></span>其他</div>
 </div>
-<div id="src">高程：AWS Terrain Tiles｜衛星：Sentinel-2 cloudless (EOX)｜底圖向量：OpenStreetMap｜社區資料：大茅埔老地名・五行村徽社區雲端地圖（Google My Maps）｜製作：Claude，2026-07</div>
+</div>
+<div id="src">高程：AWS Terrain Tiles｜正射影像：內政部國土測繪中心｜土地使用現況：內政部國土測繪中心 LUIMAP（2025）｜歷史地圖：中研院臺灣百年歷史地圖｜底圖向量：OpenStreetMap｜社區資料：大茅埔老地名・五行村徽社區雲端地圖（Google My Maps）｜製作：Claude，2026-07</div>
 <script>/**
  * @license
  * Copyright 2010-2021 Three.js Authors
@@ -1241,6 +1258,23 @@ var mesh=new THREE.Mesh(geo,mat_base); scene.add(mesh);
 scene.add(new THREE.AmbientLight(0xffffff,0.47));
 var sun=new THREE.DirectionalLight(0xfff4e0,0.95); sun.position.set(-32,32,-24); scene.add(sun);
 var fill=new THREE.DirectionalLight(0x8899bb,0.22); fill.position.set(25,20,30); scene.add(fill);
+/* ===== 主題疊圖 / 歷史地圖（貼地 overlay，共用地表頂點） ===== */
+var geoTop=new THREE.BufferGeometry();
+geoTop.setAttribute('position',geo.attributes.position);
+geoTop.setAttribute('uv',geo.attributes.uv);
+geoTop.setIndex(new THREE.BufferAttribute(index.slice(0,terrIdx),1));
+function loadTex(url){ var t=new THREE.TextureLoader().load(url);
+  t.flipY=false; t.encoding=THREE.sRGBEncoding; t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+  t.generateMipmaps=false; t.minFilter=THREE.LinearFilter; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; return t; }
+function overlay(){ var m=new THREE.MeshBasicMaterial({map:null,transparent:true,depthWrite:false,
+    polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4});
+  var mo=new THREE.Mesh(geoTop,m); mo.visible=false; mo.frustumCulled=false; scene.add(mo); return mo; }
+var moAgri=overlay(); moAgri.renderOrder=5; moAgri.material.opacity=0.85;
+var moBld=overlay(); moBld.renderOrder=7;
+var moCanal=overlay(); moCanal.renderOrder=9;
+var moHist=overlay(); moHist.renderOrder=4; moHist.material.opacity=1.0;
+var moLand=overlay(); moLand.renderOrder=3; moLand.material.opacity=1.0;
+function ensureTex(mo,url){ if(mo.userData.cur!==url){ mo.material.map=loadTex(url); mo.userData.cur=url; mo.material.needsUpdate=true; } }
 var controls=new THREE.OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true; controls.dampingFactor=0.08; controls.maxPolarAngle=Math.PI*0.47;
 controls.minDistance=0.25; controls.maxDistance=55; controls.panSpeed=1.8;
@@ -1287,16 +1321,6 @@ function addLabel(name,lon,lat,fs,fill,hh,off,tier){
   var x=lonToX(lon),z=latToZ(lat); if(!inside(x,z)) return;
   var sp=makeSprite(name,fs,fill,hh); gLabels.add(sp);
   labelItems.push({sp:sp,x:x,z:z,ground:sampleElev(x,z),off:off,tier:tier});
-}
-var groundMarkers=[];
-function addGroundMarker(lon,lat){ var x=lonToX(lon),z=latToZ(lat); if(!inside(x,z))return;
-  var g=new THREE.Group();
-  var rC=new THREE.MeshBasicMaterial({color:0xffffff,depthTest:false,transparent:true,opacity:0.9}); rC.color.convertSRGBToLinear();
-  var dC=new THREE.MeshBasicMaterial({color:0xd11414,depthTest:false}); dC.color.convertSRGBToLinear();
-  var ring=new THREE.Mesh(new THREE.CircleGeometry(0.035,40),rC); ring.rotation.x=-Math.PI/2; ring.renderOrder=1000; ring.position.y=0.002;
-  var dot=new THREE.Mesh(new THREE.CircleGeometry(0.026,40),dC); dot.rotation.x=-Math.PI/2; dot.renderOrder=1001; dot.position.y=0.004;
-  g.add(ring); g.add(dot); gLabels.add(g);
-  groundMarkers.push({obj:g,x:x,z:z,ground:sampleElev(x,z)});
 }
 VECT.places.forEach(function(p){
   if(p.n==='大茅埔'){ addLabel(p.n,p.lon,p.lat,52,'#b00000',1.30,0.9,0); }
@@ -1379,12 +1403,38 @@ function applyExaggeration(withNormals){
   bundles.forEach(function(b){ var p=b.geo.attributes.position.array;
     for(var t=0;t<b.gnd.length;t++) p[t*3+1]=(b.gnd[t]+b.off)*s; b.geo.attributes.position.needsUpdate=true; });
   labelItems.forEach(function(it){ it.sp.position.set(it.x,it.ground*s+it.off,it.z); });
-  groundMarkers.forEach(function(m){ m.obj.position.set(m.x,m.ground*s+0.006,m.z); });
   myLabels.forEach(function(it){ if(it.sp) it.sp.position.set(it.x,it.ground*s+it.off,it.z); });
   myClouds.forEach(function(c){ var p=c.geo.attributes.position.array;
     for(var t=0;t<c.items.length;t++){ var y=(c.items[t].ground+6)*s; p[t*3+1]=y; c.items[t].y=y; }
     c.geo.attributes.position.needsUpdate=true; });
 }
+var gContour=new THREE.Group(); scene.add(gContour);
+var CT_MAT_IDX=new THREE.LineBasicMaterial({color:0x5a3510,transparent:true,opacity:0.9,depthWrite:false});
+var CT_MAT_INT=new THREE.LineBasicMaterial({color:0x6f4a24,transparent:true,opacity:0.5,depthWrite:false});
+function updateContourY(){ var s=0.001*EX; for(var ci=0;ci<gContour.children.length;ci++){ var o=gContour.children[ci]; o.position.y=o.userData.E*s+0.0008; } }
+function buildContours(interval){
+  for(var q=gContour.children.length-1;q>=0;q--){ var oo=gContour.children[q]; gContour.remove(oo); if(oo.geometry)oo.geometry.dispose(); }
+  var stride=isMobile?3:2, invW=1/(W-1), invH=1/(H-1), buckets={};
+  for(var ii=0;ii+stride<H;ii+=stride){ var zT=(ii*invH-0.5)*KY, zB=((ii+stride)*invH-0.5)*KY, rT=ii*W, rB=(ii+stride)*W;
+    for(var jj=0;jj+stride<W;jj+=stride){ var h00=heights[rT+jj],h10=heights[rT+jj+stride],h01=heights[rB+jj],h11=heights[rB+jj+stride];
+      var mn=h00<h10?h00:h10; if(h01<mn)mn=h01; if(h11<mn)mn=h11; var mx=h00>h10?h00:h10; if(h01>mx)mx=h01; if(h11>mx)mx=h11;
+      var xL=(jj*invW-0.5)*KX, xR=((jj+stride)*invW-0.5)*KX, Es=Math.ceil(mn/interval)*interval;
+      for(var E=Es;E<=mx;E+=interval){ var p=[],t;
+        if((h00<=E)!==(h10<=E)){t=(E-h00)/(h10-h00);p.push(xL+(xR-xL)*t,zT);}
+        if((h10<=E)!==(h11<=E)){t=(E-h10)/(h11-h10);p.push(xR,zT+(zB-zT)*t);}
+        if((h01<=E)!==(h11<=E)){t=(E-h01)/(h11-h01);p.push(xL+(xR-xL)*t,zB);}
+        if((h00<=E)!==(h01<=E)){t=(E-h00)/(h01-h00);p.push(xL,zT+(zB-zT)*t);}
+        if(p.length>=4){ var key=Math.round(E), b=buckets[key]||(buckets[key]=[]); b.push(p[0],0,p[1],p[2],0,p[3]); if(p.length>=8){b.push(p[4],0,p[5],p[6],0,p[7]);} }
+      }
+    }
+  }
+  Object.keys(buckets).forEach(function(k){ var E=+k, v=buckets[k]; if(!v.length)return;
+    var g=new THREE.BufferGeometry(); g.setAttribute("position",new THREE.Float32BufferAttribute(v,3));
+    var ls=new THREE.LineSegments(g,(E%100===0)?CT_MAT_IDX:CT_MAT_INT); ls.userData.E=E; ls.renderOrder=2; gContour.add(ls);
+  });
+  updateContourY();
+}
+buildContours(50);
 applyExaggeration(true);
 /* hover / tap query */
 var raycaster=new THREE.Raycaster(),mouseNDC=new THREE.Vector2(),hoverEl=document.getElementById('hover');
@@ -1493,17 +1543,48 @@ document.getElementById('ck_wat').addEventListener('change',function(e){ gWater.
   document.getElementById('ck_'+g).addEventListener('change',function(e){ myGrp[g].visible=e.target.checked; });
 });
 addEventListener('keydown',function(e){ var k=e.key,mv=new THREE.Vector3(); var d=camera.position.distanceTo(controls.target),pan=d*0.11; var fwd=new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y=0; if(fwd.lengthSq()<1e-6)return; fwd.normalize(); var rt=new THREE.Vector3().crossVectors(fwd,new THREE.Vector3(0,1,0)).normalize(); if(k==='ArrowUp')mv.copy(fwd); else if(k==='ArrowDown')mv.copy(fwd).negate(); else if(k==='ArrowRight')mv.copy(rt); else if(k==='ArrowLeft')mv.copy(rt).negate(); else return; e.preventDefault(); mv.multiplyScalar(pan); camera.position.add(mv); controls.target.add(mv); });
-var bCont=document.getElementById('mode_cont'),bSat=document.getElementById('mode_sat'),legend=document.getElementById('legend');
-function setMode(m){ if(m==='cont'){ mesh.material=mat_base; gOverlay.visible=true; bCont.classList.add('on'); bSat.classList.remove('on'); legend.style.display='block'; }
-  else{ mesh.material=mat_sat; gOverlay.visible=false; bSat.classList.add('on'); bCont.classList.remove('on'); legend.style.display='none'; } }
+var bCont=document.getElementById('mode_cont'),bSat=document.getElementById('mode_sat'),bHist=document.getElementById('mode_hist'),legend=document.getElementById('legend');
+var ckAgri=document.getElementById('ck_agri'),ckBld=document.getElementById('ck_bld'),ckCcan=document.getElementById('ck_ccan');
+var thmRow=document.getElementById('thm_row'),histRow=document.getElementById('hist_row');
+var ckLand=document.getElementById('ck_land'),ckContour=document.getElementById('ck_contour'),luLegend=document.getElementById('lu_legend');
+var mode='cont',histSel='1904';
+function syncOverlays(){
+  var c=(mode==='cont');
+  moAgri.visible=c&&ckAgri.checked; if(moAgri.visible) ensureTex(moAgri,'th_agri.png');
+  moBld.visible=c&&ckBld.checked; if(moBld.visible) ensureTex(moBld,'th_bld.png');
+  moCanal.visible=c&&ckCcan.checked; if(moCanal.visible) ensureTex(moCanal,'th_canal.png');
+  moHist.visible=(mode==='hist'); if(moHist.visible) ensureTex(moHist,'hist'+histSel+'.jpg');
+  moLand.visible=c&&ckLand.checked; if(moLand.visible) ensureTex(moLand,'landuse.png'); luLegend.style.display=(c&&ckLand.checked)?'block':'none';
+  gContour.visible=c&&ckContour.checked;
+}
+function setMode(m){ mode=m;
+  mesh.material=(m==='sat')?mat_sat:mat_base;
+  gOverlay.visible=(m==='cont');
+  legend.style.display=(m==='cont')?'block':'none';
+  bCont.classList.toggle('on',m==='cont'); bSat.classList.toggle('on',m==='sat'); bHist.classList.toggle('on',m==='hist');
+  thmRow.style.display=(m==='cont')?'block':'none';
+  histRow.style.display=(m==='hist')?'block':'none';
+  syncOverlays();
+}
 bCont.addEventListener('click',function(){ setMode('cont'); });
 bSat.addEventListener('click',function(){ setMode('sat'); });
+bHist.addEventListener('click',function(){ setMode('hist'); });
+[ckAgri,ckBld,ckCcan].forEach(function(ck){ ck.addEventListener('change',syncOverlays); });
+ckLand.addEventListener('change',syncOverlays);
+ckContour.addEventListener('change',syncOverlays);
+document.getElementById('ct_int').addEventListener('change',function(){ buildContours(parseInt(this.value,10)); syncOverlays(); });
+exSlider.addEventListener('input',updateContourY); exSlider.addEventListener('change',updateContourY);
+document.querySelectorAll('input[name=histmap]').forEach(function(r){
+  r.addEventListener('change',function(){ if(r.checked){ histSel=r.value; syncOverlays(); } });
+});
 var northEl=document.getElementById('north');
 addEventListener('resize',function(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 var loadEl=document.getElementById('loading');
 function updateLOD(){ var d=camera.position.distanceTo(controls.target);
   for(var li=0;li<labelItems.length;li++){ var t=labelItems[li].tier; labelItems[li].sp.visible=(t===0)||(t===1&&d<60)||(t===2&&d<9); }
   /* 文史點名稱：僅滑鼠移過才顯示（setHoverLabel），不做距離自動浮現 */
+  /* item6：文史點依相機距離縮放點徑，遠觀縮小避免糊成一片、拉近恢復 */
+  var _pf=(d>55)?0.35:(d>30?0.55:(d>16?0.8:1)); gMy.traverse(function(o){ if(o.isPoints){ var _b=o.material.userData._bs; if(_b==null){_b=o.material.size;o.material.userData._bs=_b;} o.material.size=_b*_pf; } });
 }
 (function animate(){ requestAnimationFrame(animate); controls.update(); updateLOD();
   northEl.style.transform='rotate('+(controls.getAzimuthalAngle()*180/Math.PI).toFixed(1)+'deg)';
