@@ -1180,7 +1180,7 @@ var CFG = {
   /* 朝東：HOME 錨在泰興宮 (120.8437,24.1990)，pos=錨+[-5.2,4.2,+5.2]，tgt=錨+[0,0.9,0] */
   view: { facing: "E", homeAnchor: [120.8437, 24.1990],
           homePosOff: [-5.2, 4.2, 5.2], homeTgtOff: [0, 0.9, 0] },
-  controls: { damping: 0.08, maxPolarAngle: 0.47, minDistance: 0.25, maxDistance: 55, panSpeed: 1.8 },
+  controls: { damping: 0.08, maxPolarAngle: 0.47, screenSpacePanning: true, minDistance: 0.25, maxDistance: 55, panSpeed: 1.8, zoomSpeed: 2.2, keyPanSpeed: 14 },
   exaggeration: { default: 2.0, min: 1.0, max: 4.0 },
 
   /* 分層設色（校準 310–1190m）＋暈渲（VE2.1＋陡坡壓暗） */
@@ -1378,8 +1378,8 @@ var moHist=overlay(); moHist.renderOrder=CFG.overlays.hist.renderOrder; moHist.m
 var moLand=overlay(); moLand.renderOrder=CFG.overlays.land.renderOrder; moLand.material.opacity=CFG.overlays.land.opacity;
 function ensureTex(mo,url){ if(mo.userData.cur!==url){ mo.material.map=loadTex(url); mo.userData.cur=url; mo.material.needsUpdate=true; } }
 var controls=new THREE.OrbitControls(camera,renderer.domElement);
-controls.enableDamping=true; controls.dampingFactor=CFG.controls.damping; controls.maxPolarAngle=Math.PI*CFG.controls.maxPolarAngle;
-controls.minDistance=CFG.controls.minDistance; controls.maxDistance=CFG.controls.maxDistance; controls.panSpeed=CFG.controls.panSpeed;
+controls.enableDamping=true; controls.dampingFactor=CFG.controls.damping; controls.maxPolarAngle=Math.PI*CFG.controls.maxPolarAngle; controls.screenSpacePanning=CFG.controls.screenSpacePanning;
+controls.minDistance=CFG.controls.minDistance; controls.maxDistance=CFG.controls.maxDistance; controls.panSpeed=CFG.controls.panSpeed; controls.zoomSpeed=CFG.controls.zoomSpeed; controls.keyPanSpeed=CFG.controls.keyPanSpeed;
 var hx=lonToX(CFG.view.homeAnchor[0]),hz=latToZ(CFG.view.homeAnchor[1]);
 var HOME={pos:new THREE.Vector3(hx+CFG.view.homePosOff[0],CFG.view.homePosOff[1],hz+CFG.view.homePosOff[2]),tgt:new THREE.Vector3(hx+CFG.view.homeTgtOff[0],CFG.view.homeTgtOff[1],hz+CFG.view.homeTgtOff[2])};
 function resetView(){ camera.position.copy(HOME.pos); controls.target.copy(HOME.tgt); }
