@@ -28,8 +28,7 @@ canvas{display:block;touch-action:none}
 #legend .ln{display:inline-block;width:22px;height:0;border-top-width:2px;border-top-style:solid}
 #legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid rgba(255,255,255,.6)}
 #hover{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:none;background:rgba(16,22,36,.82);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px;font-size:12.5px;z-index:10}
-#northbox{position:fixed;bottom:16px;right:16px;width:40px;height:40px;background:rgba(16,22,36,.82);border:1px solid rgba(255,255,255,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10}
-#north{font-weight:bold;color:#ff8a7a;font-size:15px}
+#northbox{position:fixed;bottom:16px;right:16px;width:44px;height:44px;background:rgba(16,22,36,.82);border:1px solid rgba(255,255,255,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10}
 #src{position:fixed;bottom:2px;left:50%;transform:translateX(-50%);font-size:10px;color:#66708a;z-index:10}
 #loading{position:fixed;inset:0;background:#0e1420;display:flex;align-items:center;justify-content:center;font-size:16px;color:#aab4c8;z-index:99}
 #pop{position:fixed;right:250px;top:14px;width:390px;max-height:calc(100vh - 90px);overflow-y:auto;z-index:30;display:none;background:rgba(16,22,36,.94);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:12px 14px}
@@ -43,7 +42,7 @@ canvas{display:block;touch-action:none}
   #title{max-width:calc(100vw - 24px)} #title h1{font-size:14px} #title .sub{display:none}
   #ctrl{top:auto;bottom:64px;right:10px;width:158px} #ctrl .hint{font-size:10px;line-height:1.4}
   #legend{font-size:10px} #legend .bar{height:70px} #legend .cap{font-size:11px}
-  #northbox{width:34px;height:34px;bottom:12px} #north{font-size:13px}
+  #northbox{width:36px;height:36px;bottom:12px}
   #hover{font-size:11px;max-width:92vw;padding:5px 9px}
   #src{font-size:8.5px;max-width:96vw;text-align:center}
   #pop{left:10px;right:10px;width:auto;top:auto;bottom:10px;max-height:48vh}
@@ -57,7 +56,7 @@ canvas{display:block;touch-action:none}
 <div id="title" class="panel"><h1>大茅埔 3D 互動地圖 — 老地名・水圳・社區記憶</h1>
 <div class="sub">台中市東勢區 慶東里・慶福里（大茅埔庄）與大甲溪沿岸<br>範圍 120.815–120.886°E, 24.157–24.268°N（約 7.2 × 12.3 km）｜約5m網格<br>資料：大茅埔老地名（2020）＋五行村徽社區雲端地圖（2022）｜<b>滑過圓點顯示名稱，點擊看照片與故事</b></div></div>
 <div id="hover"></div>
-<div id="northbox"><span id="north">N↑</span></div>
+<div id="northbox"><svg viewBox="0 0 44 44" width="100%" height="100%" style="display:block"><g id="north"><polygon points="22,5 16.5,22 22,18 27.5,22" fill="#e8433a"></polygon><polygon points="22,39 16.5,22 22,26 27.5,22" fill="#b9c2d0"></polygon><circle cx="22" cy="22" r="2.3" fill="#eef2f8"></circle><text x="22" y="4.4" text-anchor="middle" font-size="7.5" fill="#e8433a" font-weight="bold" font-family="sans-serif">N</text></g></svg></div>
 <div id="pop"><button class="x" id="pop_x">×</button><h2 id="pop_t"></h2><span class="lay" id="pop_l"></span><div class="txt" id="pop_d"></div><div id="pop_ph"></div></div>
 <div id="ctrl" class="panel">
   <button class="tog" id="tog_ctrl">設定 ▾</button>
@@ -1707,6 +1706,9 @@ document.querySelectorAll('input[name=histmap]').forEach(function(r){
 var northEl=document.getElementById('north');
 addEventListener('resize',function(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 var loadEl=document.getElementById('loading');
+/* G5 預載主題疊圖，消除首次切換延遲（衛星仍延遲載入以節省記憶體） */
+function ensureOverlays(){ ensureTex(moAgri,'th_agri.png'); ensureTex(moBld,'th_bld.png'); ensureTex(moCanal,'th_canal.png'); ensureTex(moLand,'landuse.png'); }
+if(window.requestIdleCallback){ requestIdleCallback(function(){ ensureOverlays(); },{timeout:4500}); } else { setTimeout(ensureOverlays,3000); }
 function updateLOD(){ var d=camera.position.distanceTo(controls.target);
   for(var li=0;li<labelItems.length;li++){ var t=labelItems[li].tier; labelItems[li].sp.visible=(t===0)||(t===1&&d<CFG.lod.place.tier1)||(t===2&&d<CFG.lod.place.tier2); }
   /* 文史點名稱：僅滑鼠移過才顯示（setHoverLabel），不做距離自動浮現 */
@@ -1714,7 +1716,7 @@ function updateLOD(){ var d=camera.position.distanceTo(controls.target);
   var _pf=(d>CFG.lod.storyPointScale[0][0])?CFG.lod.storyPointScale[0][1]:(d>CFG.lod.storyPointScale[1][0]?CFG.lod.storyPointScale[1][1]:(d>CFG.lod.storyPointScale[2][0]?CFG.lod.storyPointScale[2][1]:1)); gMy.traverse(function(o){ if(o.isPoints){ var _b=o.material.userData._bs; if(_b==null){_b=o.material.size;o.material.userData._bs=_b;} o.material.size=_b*_pf; } });
 }
 (function animate(){ requestAnimationFrame(animate); controls.update(); updateLOD();
-  northEl.style.transform='rotate('+(controls.getAzimuthalAngle()*180/Math.PI).toFixed(1)+'deg)';
+  northEl.setAttribute('transform','rotate('+(controls.getAzimuthalAngle()*180/Math.PI).toFixed(1)+' 22 22)');
   renderer.render(scene,camera); if(loadEl){ loadEl.remove(); loadEl=null; } })();
 } /* end boot */
 var _img=new Image();
@@ -1736,5 +1738,4 @@ _img.src='data:image/png;base64,'+DEM_PNG;
 })();
 
 </script>
-</body>
-</html>
+</body></html>
